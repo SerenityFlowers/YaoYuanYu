@@ -1,0 +1,163 @@
+/* -----------------------
+   0. 变量 & 通用设置
+----------------------- */
+:root {
+    --primary: #0b6dd6;
+    --primary-hover: #0751a0;
+    --text-main: #333;
+    --bg-page: #f9f9f9;
+    --error-text: #d9534f;
+    --card-bg: #ffffff;               /* 新：统一卡片/表格背景 */
+    --line: #eaeaea;                  /* 新：浅灰分隔线 */
+}
+
+/* -----------------------
+   1. 基础排版
+----------------------- */
+body{
+    font-family: Arial, sans-serif;
+    margin:0;padding:0;
+    background:var(--bg-page);
+    color:var(--text-main);
+}
+h1{ text-align:center;margin:20px 0; }
+
+/* -----------------------
+   1-bis. 主页索引表格  ★新增★
+----------------------- */
+.dictionary-table{                 /* index.html 会加上这个类 */
+    width:60%;
+    margin:0 auto 40px;
+    border-collapse:collapse;
+    background:var(--card-bg);
+    box-shadow:0 4px 10px rgba(0,0,0,.05);
+    border-radius:6px;
+    overflow:hidden;               /* 圆角也作用于tbody */
+}
+.dictionary-table th,
+.dictionary-table td{
+    padding:12px 16px;
+    text-align:center;
+    border-bottom:1px solid var(--line);
+    font-size:1rem;
+}
+.dictionary-table thead th{
+    background:var(--primary);
+    color:#fff;
+    font-weight:600;
+}
+.dictionary-table tbody tr:nth-child(even){ background:#f6f8fa; }
+.dictionary-table tbody tr:hover{
+    background:#e9f5ff;
+    cursor:pointer;
+}
+
+/* -----------------------
+   2. 图像页 & 导航区
+----------------------- */
+.navigation-container{text-align:center;margin:10px 0;}
+button,
+a.button-link,
+a.button-link:visited{             /* ★统一按钮外观（含“返回”链接） */
+    background:var(--primary);
+    color:#fff;
+    text-decoration:none;
+    display:inline-block;
+    border:none;
+    padding:10px 20px;
+    margin:6px;
+    font-size:16px;
+    border-radius:5px;
+    cursor:pointer;
+    transition:background .3s;
+}
+button:hover,
+a.button-link:hover{ background:var(--primary-hover); }
+
+/* ……以下原样保留 …… */
+
+/* 可编辑页码框 */
+.page-input {
+    width: 70px;
+    padding: 10px 0;
+    margin: 6px;
+    font-size: 18px;
+    font-weight: bold;
+    text-align: center;
+    border: 2px solid var(--primary);
+    border-radius: 5px;
+    background: #fff;
+    color: var(--text-main);
+}
+.page-input:focus { outline: none; border-color: var(--primary-hover); }
+
+/* 温和提示消息 */
+.message {
+    text-align: center;
+    color: var(--error-text);
+    font-size: 14px;
+    min-height: 1.2em;
+    margin-top: 4px;
+}
+
+/* -----------------------
+   3. 图片容器
+----------------------- */
+#image-container {
+    text-align: center;
+    margin: 10px auto;
+}
+#dictionary-image {
+    max-width: 90%;
+    height: auto;
+    box-shadow: 0 4px 10px rgba(0,0,0,.1);
+}
+
+/* -----------------------
+   4. 圆形进度加载
+----------------------- */
+.loader-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(255,255,255,.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+.loader {
+    --deg: 0deg;
+    position: relative;
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: conic-gradient(var(--primary) var(--deg), #e6e6e6 var(--deg) 360deg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    font-weight: bold;
+    color: var(--primary);
+    transition: background .1s linear;
+}
+.loader::before {
+    content: '';
+    position: absolute;
+    inset: 8px;
+    background: #fff;
+    border-radius: 50%;
+}
+.loader span { position: relative; z-index:1; }
+
+.hidden { display: none !important; }
+
+@media (max-width:768px) {
+    button, a.button-link { width: 100%; box-sizing: border-box; }
+}
+.description {
+    text-align: center;
+    margin: 10px 0;
+    font-size: 0.9rem;
+    color: #555;
+  }
+  
