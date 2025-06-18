@@ -17,8 +17,10 @@
     background:var(--bg-page);
     color:var(--text-main);
   }
-  h1{margin:20px 0;
-    text-align:left}
+  h1{
+    margin:20px 0;
+    text-align:left;
+  }
   
   /* -----------------------------------------------------------
      1. 主页搜索 / 结果区
@@ -52,7 +54,13 @@
     background:var(--primary);
     color:#fff;
   }
-  .all-toggle{display:flex;align-items:center;gap:.25rem;font-size:.95rem;cursor:pointer}
+  .all-toggle{
+    display:flex;
+    align-items:center;
+    gap:.25rem;
+    font-size:.95rem;
+    cursor:pointer;
+  }
   .count{margin:.5rem 0 1rem;color:#555}
   
   /* ===== 索引表格（两张表共用） ===== */
@@ -88,8 +96,8 @@
   ----------------------------------------------------------- */
   .navigation-container{
     text-align:center;
-    margin: 45px 0 5px 0;
-}
+    margin:45px 0 5px 0;
+  }
   button,
   a.button-link,
   a.button-link:visited{
@@ -159,18 +167,90 @@
   }
   
   /* -----------------------------------------------------------
-     5. 响应式微调
+     5. 响应式微调（原有，仅保留）               📱 RESPONSIVE
   ----------------------------------------------------------- */
-  @media(max-width:768px){
-    button,a.button-link{width:100%;box-sizing:border-box}
+  @media (max-width:768px){
+    button,
+    a.button-link{
+      width:100%;
+      box-sizing:border-box;
+    }
   }
   /* 搜索说明文字 */
-  .intro-text {
-    font-size: .95rem;
-    color: var(--text-main);
-    opacity: 0.8;
-    text-align: left;   /* ← 左对齐 */
-    width: 100%;         /* ← 确保占满父容器宽度，p 标签默认为 block，可省略 */
+  .intro-text{
+    font-size:.95rem;
+    color:var(--text-main);
+    opacity:.8;
+    text-align:left;
+    width:100%;
   }
   
+  /* -----------------------------------------------------------
+     6. 移动端适配增强                         📱 RESPONSIVE
+     -----------------------------------------------------------
+     - 针对 ≤ 768 px 与 ≤ 576 px 两档屏幕宽度
+     - 只增加、不覆盖原规则，确保功能稳定
+  ----------------------------------------------------------- */
+  
+  /* ① 视口 < 768 px：主要是平板 / 大手机纵向 */
+  @media (max-width:768px){
+    .container{max-width:92%;}
+    .search-bar{
+      flex-wrap:wrap;
+      gap:.5rem;
+    }
+    .search-bar input[type="text"]{
+      flex:1 1 100%;
+    }
+    .dictionary-table{
+      font-size:.95rem;          /* 字号稍缩小，避免换行 */
+      overflow-x:auto;           /* 允许横向滚动防止压缩 */
+    }
+  }
+  
+  /* ② 视口 < 576 px：主流手机 */
+  @media (max-width:576px){
+    /* 布局栅格化 */
+    .container{
+      max-width:100%;
+      padding:1.5rem .75rem;
+    }
+    h1{font-size:1.35rem;margin:1rem 0 .75rem}
+  
+    /* 搜索栏垂直排列 */
+    .search-bar{
+      flex-direction:column;
+      align-items:stretch;
+      gap:.5rem;
+    }
+    .search-bar input[type="text"],
+    .search-bar button{
+      width:100%;
+      font-size:1rem;
+    }
+  
+    /* 表格字体再缩小一点，行高跟随 */
+    .dictionary-table{
+      font-size:.875rem;
+    }
+    .dictionary-table th,
+    .dictionary-table td{
+      padding:10px;
+    }
+  
+    /* 图片与导航控件 */
+    #dictionary-image{max-width:100%;}
+    .navigation-container{
+      margin:30px 0 0;
+    }
+    button,
+    a.button-link{
+      font-size:15px;
+      padding:9px 16px;
+    }
+    .page-input{
+      width:60px;
+      font-size:16px;
+    }
+  }
   
