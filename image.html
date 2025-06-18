@@ -7,7 +7,6 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <h1>原書圖版</h1>
 
   <!-- 顶部导航 -->
   <div class="navigation-container">
@@ -15,13 +14,15 @@
     <input type="number" min="1" class="page-input" />
     <button class="jump-btn">跳轉</button>
     <button class="next-page">下一頁</button>
-    <a href="index.html" class="button-link">返迴</a>
+    <a href="index.html" class="button-link">返回</a>
   </div>
   <div id="top-message" class="message"></div>
 
-  <!-- 图片 -->
+  <!-- 图片与遮罩 -->
   <div id="image-container">
-    <img id="dictionary-image" src="" alt="字典图片" />
+    <img id="dictionary-image" src="" alt="字典图片" class="hidden" />
+    <!-- 通过 JS 调整高度实现“自上而下”显影 -->
+    <div class="reveal-cover"></div>
   </div>
 
   <!-- 底部导航 -->
@@ -30,137 +31,11 @@
     <input type="number" min="1" class="page-input" />
     <button class="jump-btn">跳轉</button>
     <button class="next-page">下一頁</button>
-    <a href="index.html" class="button-link">返迴</a>
+    <a href="index.html" class="button-link">返回</a>
   </div>
   <div id="bottom-message" class="message"></div>
 
-  <!-- 圆形加载器 -->
-  <div id="loader-overlay" class="loader-overlay">
-    <div id="loader" class="loader"><span id="loader-text">0%</span></div>
-  </div>
-
-  <script>
-    // ===== 全局元素 =====
-    const imgEl      = document.getElementById('dictionary-image');
-    const loaderOv   = document.getElementById('loader-overlay');
-    const loader     = document.getElementById('loader');
-    const loaderTxt  = document.getElementById('loader-text');
-    const inputEls   = document.querySelectorAll('.page-input');
-    const topMsg     = document.getElementById('top-message');
-    const bottomMsg  = document.getElementById('bottom-message');
-
-    // ===== 初始页码 =====
-    const urlParams  = new URLSearchParams(location.search);
-    let pageNumber   = parseInt(urlParams.get('page'),10) || 1;
-
-    // ===== 来自 data.json 的页码范围 =====
-    let minPage = Infinity, maxPage = -Infinity;
-    fetch('data.json')
-      .then(r => r.json())
-      .then(data => {
-        data.forEach(item => {
-          const p = Number(item['頁碼']);
-          if (!isNaN(p)) {
-            minPage = Math.min(minPage, p);
-            maxPage = Math.max(maxPage, p);
-          }
-        });
-        // 如果初始页超出范围，重置为 minPage
-        if (pageNumber < minPage || pageNumber > maxPage) {
-          pageNumber = minPage;
-          history.replaceState(null,'',`image.html?page=${pageNumber}`);
-        }
-        syncInputs();
-        loadImage();
-      })
-      .catch(e => {
-        console.error('加载 data.json 失败', e);
-        // 退化：直接加载图片
-        syncInputs();
-        loadImage();
-      });
-
-    // ===== 工具函数 =====
-    function syncInputs() {
-      inputEls.forEach(el => el.value = pageNumber);
-      clearMessages();
-    }
-    function setLoader(percent) {
-      loader.style.setProperty('--deg', percent * 3.6 + 'deg');
-      loaderTxt.textContent = percent + '%';
-    }
-    function showMessage(msg) {
-      topMsg.textContent = msg;
-      bottomMsg.textContent = msg;
-    }
-    function clearMessages() {
-      topMsg.textContent = '';
-      bottomMsg.textContent = '';
-    }
-
-    async function loadImage() {
-      const url = `images/YYP${pageNumber}.png`;
-      loaderOv.classList.remove('hidden');
-      setLoader(0);
-      try {
-        const res = await fetch(url);
-        const len = +res.headers.get('Content-Length') || 0;
-        if (!res.body || !len) {
-          imgEl.src = url;
-          return;
-        }
-        const reader = res.body.getReader();
-        let received = 0, chunks = [];
-        while (true) {
-          const {done, value} = await reader.read();
-          if (done) break;
-          chunks.push(value);
-          received += value.length;
-          setLoader(Math.round(received/len*100));
-        }
-        imgEl.src = URL.createObjectURL(new Blob(chunks));
-      } catch (e) {
-        showMessage('加载图片失败，请重试。');
-        console.error(e);
-      } finally {
-        loaderOv.classList.add('hidden');
-      }
-    }
-
-    function jumpTo(target) {
-      clearMessages();
-      if (isNaN(target)) return;
-      if (target < minPage || target > maxPage) {
-        showMessage(`请输入 ${minPage} 到 ${maxPage} 之间的页码。`);
-        return;
-      }
-      pageNumber = target;
-      history.pushState(null,'',`image.html?page=${pageNumber}`);
-      syncInputs();
-      loadImage();
-    }
-
-    // ===== 事件绑定 =====
-    document.querySelectorAll('.prev-page')
-      .forEach(btn => btn.addEventListener('click', () => jumpTo(pageNumber - 1)));
-
-    document.querySelectorAll('.next-page')
-      .forEach(btn => btn.addEventListener('click', () => jumpTo(pageNumber + 1)));
-
-    document.querySelectorAll('.jump-btn')
-      .forEach(btn => btn.addEventListener('click', () => {
-        const input = btn.parentElement.querySelector('.page-input');
-        jumpTo(parseInt(input.value, 10));
-      }));
-
-    inputEls.forEach(el => el.addEventListener('keydown', e => {
-      if (e.key === 'Enter') {
-        jumpTo(parseInt(el.value, 10));
-      }
-    }));
-
-    // 防止在 data.json 加载前触发
-    window.addEventListener('load', e => e.preventDefault());
-  </script>
+  <!-- 关键逻辑模块化 -->
+  <script type="module" src="viewer.js"></script>
 </body>
 </html>

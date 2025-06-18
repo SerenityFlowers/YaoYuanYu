@@ -24,7 +24,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     if (item['頁碼'] !== null && item['頁碼'] !== 0) {
                         window.open(`image.html?page=${item['頁碼']}`, '_blank');
                     } else {
-                        alert('该字没有对应的页码。');
+                        alert('該没有對應的頁碼。');
                     }
                 });
 
