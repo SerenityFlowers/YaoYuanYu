@@ -1,195 +1,213 @@
-/* viewer.js —— 加强版图片浏览器（ES Module，全量覆盖）*/
+/* viewer.js — 2025-06-18 final merge */
+
 document.addEventListener('DOMContentLoaded', () => {
-  /* -------------------------------------------------------
-     1. 版别配置
-  ------------------------------------------------------- */
+  /* --------------------------------------------------
+     1. 版別設定
+  -------------------------------------------------- */
   const editions = {
     YYP: { folder: 'images',     prefix: 'YYP', ext: '.png', key: ['頁碼', '姚校頁碼'] },
     YC : { folder: 'images_YC',  prefix: 'YC',  ext: '.jpg', key: ['續四庫頁碼']       }
   };
 
-  /* -------------------------------------------------------
-     2. 解析 URL 参数
-  ------------------------------------------------------- */
-  const params        = new URLSearchParams(location.search);
-  let editionKey      = (params.get('ed') || 'YYP').toUpperCase();
+  /* --------------------------------------------------
+     2. URL 參數
+  -------------------------------------------------- */
+  const qs         = new URLSearchParams(location.search);
+  let editionKey   = (qs.get('ed') || 'YYP').toUpperCase();
   if (!(editionKey in editions)) editionKey = 'YYP';
-  let pageNumber      = parseInt(params.get('page'), 10) || 1;
-  const cfg           = editions[editionKey];
+  let pageNumber   = parseInt(qs.get('page'), 10) || 1;
+  const cfg        = editions[editionKey];
 
-  /* -------------------------------------------------------
-     3. DOM 引用
-  ------------------------------------------------------- */
-  const imgEl         = document.getElementById('dictionary-image');
-  const cover         = document.querySelector('.reveal-cover');
-  const inputEls      = document.querySelectorAll('.page-input');
-  const topMsg        = document.getElementById('top-message');
-  const bottomMsg     = document.getElementById('bottom-message');
+  /* --------------------------------------------------
+     3. DOM
+  -------------------------------------------------- */
+  const imgEl      = document.getElementById('dictionary-image');
+  const cover      = document.querySelector('.reveal-cover');
+  const topMsg     = document.getElementById('top-message');
+  const botMsg     = document.getElementById('bottom-message');
+  const inputEls   = document.querySelectorAll('.page-input');
 
-  /* -------------------------------------------------------
-     4. 全局页码数据
-  ------------------------------------------------------- */
-  let minPage   = Infinity;
-  let maxPage   = -Infinity;
-  const pageSet = new Set();   // 用于判定“该页是否真的存在索引记录”
+  /* --------------------------------------------------
+     4. 全局集合與範圍
+        pageSet   : 來自 data.json（索引行）
+        imgSet    : 來自 _index.json（圖片真實存在）
+        minPage/maxPage     : pageSet 的範圍
+        minImg/maxImg       : imgSet  的範圍
+  -------------------------------------------------- */
+  const pageSet = new Set();
+  const imgSet  = new Set();
+  let minPage   = Infinity, maxPage = -Infinity;
+  let minImg    = Infinity, maxImg  = -Infinity;
 
-  /* -------------------------------------------------------
-     5. 工具函数
-  ------------------------------------------------------- */
-  const numberify = v => {
-    const n = parseInt(String(v ?? '').replace(/[^\d]/g, ''), 10);
-    return isNaN(n) ? null : n;
-  };
-  const showMsg  = msg => (topMsg.textContent = bottomMsg.textContent = msg);
-  const clearMsg = ()  => (topMsg.textContent = bottomMsg.textContent = '');
-  const setCover = pct => (cover.style.height = `${100 - pct}%`);
-
-  /* -------------------------------------------------------
-     6. 先加载 data.json，取可用页码集合
-  ------------------------------------------------------- */
+  /* -------- 4-1 讀 data.json（索引用） -------- */
   fetch('data.json')
     .then(r => r.json())
-    .then(data => {
-      data.forEach(row => {
+    .then(rows => {
+      rows.forEach(row => {
         cfg.key.forEach(k => {
-          const n = numberify(row[k]);
-          if (n !== null) {
+          const n = parseInt((row[k] || '').toString().replace(/[^\d]/g, ''), 10);
+          if (!isNaN(n)) {
             pageSet.add(n);
-            minPage = Math.min(minPage, n);
-            maxPage = Math.max(maxPage, n);
+            if (n < minPage) minPage = n;
+            if (n > maxPage) maxPage = n;
           }
         });
       });
+    })
+    .catch(() => { /* 索引缺失可容忍 */ });
 
-      if (pageSet.size === 0) {
-        showMsg('未检索到该版别任何页码数据');
-        return;
-      }
-
-      /* 处理 URL 初始页：超范围 ⇒ 归并到首页 */
-      if (!pageSet.has(pageNumber)) {
-        pageNumber = [...pageSet][0];  // 最小有效页
-        history.replaceState(null, '', `image.html?ed=${editionKey}&page=${pageNumber}`);
-      }
-
+  /* -------- 4-2 讀 _index.json（可選） -------- */
+  fetch(`${cfg.folder}/_index.json`)
+    .then(r => r.ok ? r.json() : Promise.reject())
+    .then(arr => {
+      arr.forEach(n => {
+        imgSet.add(n);
+        if (n < minImg) minImg = n;
+        if (n > maxImg) maxImg = n;
+      });
+    })
+    .catch(() => { /* 沒有 _index.json 就動態探測 */ })
+    .finally(() => {
       syncInputs();
       loadImage();
-    })
-    .catch(err => {
-      console.error('data.json 加载失败：', err);
-      showMsg('页码数据加载失败；仍尝试载图……');
-      syncInputs();
-      loadImage();  // 没有页码数据也允许手动尝试
     });
 
-  /* -------------------------------------------------------
-     7. 同步输入框值
-  ------------------------------------------------------- */
+  /* --------------------------------------------------
+     5. 公用工具
+  -------------------------------------------------- */
+  const showMsg  = t => (topMsg.textContent = botMsg.textContent = t);
+  const clearMsg = () => (topMsg.textContent = botMsg.textContent = '');
+  const setCover = pct => (cover.style.height = `${100 - pct}%`);
+
   function syncInputs() {
-    inputEls.forEach(el => (el.value = pageNumber));
+    inputEls.forEach(i => (i.value = pageNumber));
     clearMsg();
+    if (pageSet.size && !pageSet.has(pageNumber)) {
+      topMsg.textContent = botMsg.textContent = '（提示：索引中未收錄此頁）';
+    }
   }
 
-  /* -------------------------------------------------------
-     8. 加载图片（含进度 & 错误提示）
-  ------------------------------------------------------- */
+  /* --------------------------------------------------
+     6. 圖片存在探測（帶快取）
+  -------------------------------------------------- */
+  const existsCache = new Map(); /* page → true/false */
+  function imageExists(p) {
+    /* 若有 _index.json，直接判定 */
+    if (imgSet.size) {
+      return Promise.resolve(imgSet.has(p));
+    }
+
+    /* 動態探測（一次快取） */
+    if (existsCache.has(p)) return Promise.resolve(existsCache.get(p));
+    return new Promise(resolve => {
+      const probe = new Image();
+      probe.onload  = () => { existsCache.set(p, true);  resolve(true);  };
+      probe.onerror = () => { existsCache.set(p, false); resolve(false); };
+      probe.src = `${cfg.folder}/${cfg.prefix}${p}${cfg.ext}?_=${Date.now()}`;
+    });
+  }
+
+  /* --------------------------------------------------
+     7. 圖片加載
+  -------------------------------------------------- */
   function loadImage() {
     const url = `${cfg.folder}/${cfg.prefix}${pageNumber}${cfg.ext}`;
 
     imgEl.classList.add('hidden');
-    cover.style.display = 'block';
-    setCover(0);        // 进度归零
+    cover.style.display = 'block'; setCover(0);
 
-    /* ---- 主动预加载（XHR）---- */
     const xhr = new XMLHttpRequest();
     xhr.open('GET', url, true);
     xhr.responseType = 'blob';
-    xhr.timeout = 15000;               // 15 s 网络超时
+    xhr.timeout = 15000;
 
-    xhr.onprogress = e => {
-      if (e.lengthComputable) setCover(Math.round((e.loaded / e.total) * 100));
-    };
+    xhr.onprogress = e => { if (e.lengthComputable) setCover((e.loaded / e.total) * 100); };
 
     xhr.onload = () => {
-      if (xhr.status !== 200) return handleLoadError();
-      const blobUrl = URL.createObjectURL(xhr.response);
-      imgEl.onload  = () => {
-        cover.style.display = 'none';
-        imgEl.classList.remove('hidden');
-      };
-      imgEl.onerror = handleLoadError;   // 万一服务器 200 但实际内容坏损
-      imgEl.src = blobUrl;
+      if (xhr.status !== 200) return handleError();
+      const blobURL = URL.createObjectURL(xhr.response);
+      imgEl.onload  = () => { cover.style.display = 'none'; imgEl.classList.remove('hidden'); };
+      imgEl.onerror = handleError;
+      imgEl.src     = blobURL;
     };
-
-    xhr.onerror  = handleLoadError;
-    xhr.ontimeout = handleLoadError;
+    xhr.onerror = xhr.ontimeout = handleError;
     xhr.send();
   }
-
-  function handleLoadError() {
+  function handleError() {
     cover.style.display = 'none';
-    imgEl.classList.remove('hidden');   // 避免留白
-    imgEl.src = '';                     // 清掉错误占位
-    showMsg('图片加载失败，请稍后重试或检查资源是否存在。');
+    imgEl.classList.remove('hidden');
+    imgEl.src = '';
+    showMsg('圖片載入失敗：檔案不存在或網路異常');
   }
 
-  /* -------------------------------------------------------
-     9. 跳转控制（上一页 / 下一页 / 指定页）
-  ------------------------------------------------------- */
+  /* --------------------------------------------------
+     8. 翻頁 / 跳轉（完整提示 + 圖片存在）
+  -------------------------------------------------- */
   function jumpTo(target) {
     clearMsg();
+    target = parseInt(target, 10);
 
-    /* ① 非数字 or NaN */
-    if (isNaN(target)) { showMsg('请输入有效数字页码'); return; }
-
-    /* ② 是否在全局最小—最大范围内？ */
-    if (target < minPage || target > maxPage) {
-      showMsg(`请输入 ${minPage} – ${maxPage} 之间的页码`);
+    /* ① 合法數字? */
+    if (isNaN(target) || target < 1) {
+      showMsg('請輸入正整數頁碼');
       return;
     }
 
-    /* ③ 是否真的有该页索引记录？ */
-    if (!pageSet.has(target)) {
-      showMsg('暂无该页图版或数据未收录');
+    /* ② 範圍提示（優先圖片清單，否則索引） */
+    const haveImgRange = imgSet.size && isFinite(minImg) && isFinite(maxImg);
+    const haveIdxRange = pageSet.size && isFinite(minPage) && isFinite(maxPage);
+
+    if (haveImgRange && (target < minImg || target > maxImg)) {
+      showMsg(`請輸入 ${minImg} – ${maxImg} 之間的頁碼`);
+      return;
+    }
+    if (!haveImgRange && haveIdxRange && (target < minPage || target > maxPage)) {
+      showMsg(`請輸入 ${minPage} – ${maxPage} 之間的頁碼`);
       return;
     }
 
-    /* ④ 正常跳转 */
-    pageNumber = target;
-    history.pushState(null, '', `image.html?ed=${editionKey}&page=${pageNumber}`);
-    syncInputs();
-    loadImage();
+    /* ③ 是否在索引中？若否，只做輕提示，不阻止 */
+    if (pageSet.size && !pageSet.has(target)) {
+      topMsg.textContent = botMsg.textContent = '（提示：索引未收錄此頁，僅嘗試載圖）';
+    }
+
+    /* ④ 圖片是否真的存在？ */
+    imageExists(target).then(ok => {
+      if (!ok) {
+        showMsg('未找到對應圖檔，請檢查頁碼或稍後再試');
+        return;
+      }
+      pageNumber = target;
+      history.pushState(null, '', `image.html?ed=${editionKey}&page=${pageNumber}`);
+      syncInputs();
+      loadImage();
+    });
   }
 
-  /* -------------------------------------------------------
-     10. 绑定事件
-  ------------------------------------------------------- */
+  /* --------------------------------------------------
+     9. 事件綁定
+  -------------------------------------------------- */
+  /* 上一頁 / 下一頁 */
   document.querySelectorAll('.prev-page')
           .forEach(btn => btn.addEventListener('click', () => jumpTo(pageNumber - 1)));
-
   document.querySelectorAll('.next-page')
           .forEach(btn => btn.addEventListener('click', () => jumpTo(pageNumber + 1)));
 
+  /* 跳轉按鈕 */
   document.querySelectorAll('.jump-btn')
           .forEach(btn => btn.addEventListener('click', () => {
-            const input = btn.parentElement.querySelector('.page-input');
-            jumpTo(parseInt(input.value, 10));
+            const inp = btn.parentElement.querySelector('.page-input');
+            jumpTo(inp.value);
           }));
-
-  inputEls.forEach(el =>
-    el.addEventListener('keydown', e => {
-      if (e.key === 'Enter') jumpTo(parseInt(el.value, 10));
-    })
+  inputEls.forEach(inp =>
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') jumpTo(inp.value); })
   );
 
-  /* -------------------------------------------------------
-     11. 浏览器前进 / 后退
-  ------------------------------------------------------- */
+  /* 瀏覽器前進 / 後退 */
   window.addEventListener('popstate', () => {
-    const ps   = new URLSearchParams(location.search);
-    const pg   = parseInt(ps.get('page'), 10);
-    if (!isNaN(pg)) {
-      pageNumber = pg;
+    const p = parseInt(new URLSearchParams(location.search).get('page'), 10);
+    if (!isNaN(p)) {
+      pageNumber = p;
       syncInputs();
       loadImage();
     }
