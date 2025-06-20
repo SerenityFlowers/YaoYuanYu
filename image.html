@@ -8,8 +8,8 @@
 </head>
 <body>
 
-  <!-- 顶部导航 -->
-  <div class="navigation-container">
+  <!-- 顶部导航（玻璃态） -->
+  <div class="navigation-container glass">
     <button class="prev-page">上一頁</button>
     <input type="number" min="1" class="page-input" />
     <button class="jump-btn">跳轉</button>
@@ -18,15 +18,15 @@
   </div>
   <div id="top-message" class="message"></div>
 
-  <!-- 图片与遮罩 -->
+  <!-- 图片容器 -->
   <div id="image-container">
-    <img id="dictionary-image" src="" alt="字典图片" class="hidden" />
-    <!-- 通过 JS 调整高度实现“自上而下”显影 -->
+    <!-- ⬇︎ 重新加回遮罩，供 viewer.js 控制 ⬇︎ -->
     <div class="reveal-cover"></div>
+    <img id="dictionary-image" src="" alt="字典图片" class="hidden" />
   </div>
 
-  <!-- 底部导航 -->
-  <div class="navigation-container">
+  <!-- 底部导航（玻璃态） -->
+  <div class="navigation-container glass">
     <button class="prev-page">上一頁</button>
     <input type="number" min="1" class="page-input" />
     <button class="jump-btn">跳轉</button>
@@ -35,7 +35,7 @@
   </div>
   <div id="bottom-message" class="message"></div>
 
-  <!-- 关键逻辑模块化 -->
+  <!-- 关键逻辑 -->
   <script type="module" src="viewer.js"></script>
 </body>
 </html>

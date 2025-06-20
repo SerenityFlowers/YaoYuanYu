@@ -1,4 +1,4 @@
-/* viewer.js — 2025-06-18 text-progress & no-timeout 版 */
+/* viewer.js — 2025-06-20 dynamic-nav-width 版 */
 
 document.addEventListener('DOMContentLoaded', () => {
   /* --------------------------------------------------
@@ -27,6 +27,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const botMsg   = document.getElementById('bottom-message');
   const inputEls = document.querySelectorAll('.page-input');
 
+  /* === 新增：兩條導航條節點 === */
+  const navEls   = document.querySelectorAll('.navigation-container');
+
   /* --- 動態建立進度文字元素（覆蓋中央顯示） --- */
   const progText = document.createElement('div');
   progText.id    = 'progress-text';
@@ -39,8 +42,18 @@ document.addEventListener('DOMContentLoaded', () => {
     pointerEvents: 'none',
     opacity: 0.9
   });
-  cover.style.position = 'relative';
-  cover.appendChild(progText);
+  if (cover) {                     // 防御：确保结点存在
+    cover.style.position = 'relative';
+    cover.appendChild(progText);
+  }
+
+  /* === 讓導航寬度隨圖片同步的工具 === */
+  function syncNavWidth() {
+    /* clientWidth 在圖片可見時返回渲染寬度；fallback 到 naturalWidth */
+    const w = imgEl.clientWidth || imgEl.naturalWidth || 0;
+    if (w) navEls.forEach(n => n.style.width = w + 'px');
+  }
+  window.addEventListener('resize', syncNavWidth);
 
   /* --------------------------------------------------
      4. 全局集合與範圍
@@ -83,6 +96,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const showMsg  = t => (topMsg.textContent = botMsg.textContent = t);
   const clearMsg = () => (topMsg.textContent = botMsg.textContent = '');
   function setCover(pct) {
+    if (!cover) return;
     cover.style.height = `${100 - pct}%`;
     progText.textContent = `加載中… ${pct}%`;
   }
@@ -114,7 +128,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function loadImage() {
     const url = `${cfg.folder}/${cfg.prefix}${pageNumber}${cfg.ext}`;
     imgEl.classList.add('hidden');
-    cover.style.display = 'block';
+    if (cover) cover.style.display = 'block';
     progText.style.display = 'block';
     setCover(0);
 
@@ -130,9 +144,10 @@ document.addEventListener('DOMContentLoaded', () => {
       if (xhr.status !== 200) return handleError();
       const blobURL = URL.createObjectURL(xhr.response);
       imgEl.onload  = () => {
-        cover.style.display = 'none';
+        if (cover) cover.style.display = 'none';
         progText.style.display = 'none';
         imgEl.classList.remove('hidden');
+        syncNavWidth();                  // ★ 圖片載入完成立即同步導航寬度
       };
       imgEl.onerror = handleError;
       imgEl.src     = blobURL;
@@ -141,7 +156,7 @@ document.addEventListener('DOMContentLoaded', () => {
     xhr.send();
   }
   function handleError() {
-    cover.style.display = 'none';
+    if (cover) cover.style.display = 'none';
     progText.style.display = 'none';
     imgEl.classList.remove('hidden'); imgEl.src = '';
     showMsg('圖片載入失敗：檔案不存在或網路異常');
@@ -196,4 +211,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const p = parseInt(new URLSearchParams(location.search).get('page'), 10);
     if (!isNaN(p)) { pageNumber = p; syncInputs(); loadImage(); }
   });
+
+  /* --- 首次進入先估算一次導航寬度 --- */
+  syncNavWidth();
 });

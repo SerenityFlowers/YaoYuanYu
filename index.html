@@ -12,8 +12,9 @@
   <script type="module" src="search.js" defer></script>
 </head>
 <body>
-  <main class="container">
-    <h1>原本《玉篇》殘卷索引Beta</h1>
+  <!-- 玻璃态容器 -->
+  <main class="container glass">
+    <h1>原本《玉篇》殘卷索引 Beta</h1>
 
     <!-- 搜索区域 -->
     <section class="search-bar">
@@ -31,11 +32,12 @@
         查看全部
       </label>
     </section>
+
     <!-- 搜索说明文字 -->
     <p id="intro-text" class="count intro-text">
-          ①輸入繁體漢字或異體字，點擊「搜索」以篩選結果；勾選「查看全部」可顯示所有索引記錄。
-      <br>②索引部分硬編碼了部分異體字，不保證完全匹配。
-      <br>③點擊索引鏈接可查看高清圖片，支持翻頁。
+      ①輸入繁體漢字或異體字，點擊「搜索」以篩選結果；勾選「查看全部」可顯示所有索引記錄。<br>
+      ②索引部分硬編碼了部分異體字，不保證完全匹配。<br>
+      ③點擊索引鏈接可查看高清圖片，支持翻頁。
     </p>
 
     <!-- 第一张表：含頁碼 -->
@@ -45,7 +47,7 @@
       <tbody id="dictionary-body"></tbody>
     </table>
 
-    <!-- 第二张表：文字詳解，样式与上表一致 -->
+    <!-- 第二张表：文字詳解 -->
     <p id="text-count" class="count sub-count"></p>
     <table id="text-table" class="dictionary-table hidden">
       <thead id="text-head"></thead>
